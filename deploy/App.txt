@@ -3,13 +3,13 @@
 <head>
     <title>Team Status By Team</title>
     <!--  (c) 2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Mon Nov 21 2016 09:03:58 GMT-0800 (PST) -->
+    <!--  Build Date: Fri Dec 02 2016 12:10:21 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Mon Nov 21 2016 09:03:58 GMT-0800 (PST)";
+        var APP_BUILD_DATE = "Fri Dec 02 2016 12:10:21 GMT-0800 (PST)";
         var STORY    = "US802";
         var BUILDER  = "arajaraman";
-        var CHECKSUM = 25438811179;
+        var CHECKSUM = 34814915850;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -826,6 +826,22 @@ Ext.define('Rally.technicalservices.FileUtilities', {
     }
 
 });
+Ext.define('TSModel', {
+    extend: 'Ext.data.Model',
+    fields: [
+        { name: 'Team', type:'string' },
+        { name: 'User', type:'string' },
+        { name: 'FormattedID', type:'string' },
+        { name: 'Name', type:'string' },
+        { name: 'WorkProduct', type:'string' },
+        { name: 'State', type:'string' },
+        { name: 'PercentageUsed', type:'string' },
+        { name: 'Capacity', type:'number' },
+        { name: 'Estimate', type:'number' },
+        { name: 'ToDo', type:'number' }
+    ]
+});
+
 Ext.define("TSApp", {
     extend: 'Rally.app.App',
     componentCls: 'app',
@@ -869,23 +885,23 @@ Ext.define("TSApp", {
             }
         });
 
-        //  selector_box.add({
-        //     xtype:'rallybutton',
-        //     itemId:'export_button',
-        //     text: 'Download CSV',
-        //     margin:10,
+         selector_box.add({
+            xtype:'rallybutton',
+            itemId:'export_button',
+            text: 'Download CSV',
+            margin:10,
 
-        //     disabled: false,
-        //     iconAlign: 'right',
-        //     listeners: {
-        //         scope: this,
-        //         click: function() {
-        //             this._export();
-        //         }
-        //     },
-        //     margin: '10',
-        //     scope: this
-        // });
+            disabled: false,
+            iconAlign: 'right',
+            listeners: {
+                scope: me,
+                click: function() {
+                    me._export();
+                }
+            },
+            margin: '10',
+            scope: me
+        });
 
     },      
 
@@ -909,6 +925,7 @@ Ext.define("TSApp", {
                 //process results to create a custom grid. 
 
                 var tasks = [];
+                //var hash = {},
 
                 Ext.Array.each(results[0],function(task){
                     var capacity = 0;
@@ -921,30 +938,141 @@ Ext.define("TSApp", {
                         }
                     },me);
 
-                    task = {
-                        Team: task.get('Project').Name,
-                        User: task.get('Owner').DisplayName,
-                        Name: task.get('Name'),
-                        FormattedID: task.get('FormattedID'),
-                        WorkProduct: task.get('WorkProduct').Name,
-                        State: task.get('State'),
-                        PercentageUsed: capacity > 0 ? (task.get('Estimate')/capacity)*100:0,
-                        Capacity: capacity,
-                        Estimate: task.get('Estimate'),
-                        ToDo: task.get('ToDo')
+                    var teamExists = null;
+                    teamExists = Ext.Array.filter(tasks, function(item) {
+                        var userExists = null;
+                        if(item.Team == task.get('Project').Name){
+
+                            userExists = Ext.Array.filter(item.children, function(child) {
+                                if(child.User == task.get('Owner').DisplayName){
+                                    child.children.push({
+                                        Name: task.get('Name'),
+                                        FormattedID: task.get('FormattedID'),
+                                        WorkProduct: task.get('WorkProduct').Name,
+                                        State: task.get('State'),
+                                        Estimate: task.get('Estimate'),
+                                        ToDo: task.get('ToDo'),
+                                        leaf: true                                        
+                                    });
+                                    child.Estimate += task.get('Estimate');
+                                    child.ToDo += task.get('ToDo');                                    
+                                    child.Capacity = capacity;
+                                    child.PercentageUsed = child.Capacity > 0 ? (child.Estimate/child.Capacity)*100:0;
+                                    //child.PercentageUsed = capacity > 0 ? (task.get('Estimate')/capacity)*100:0;
+                                    return true;       
+
+                                }
+                            },me);
+
+                            if(userExists.length < 1){
+
+                                item.children.push({
+                                    User: task.get('Owner').DisplayName,
+                                    children: [{
+                                            Name: task.get('Name'),
+                                            FormattedID: task.get('FormattedID'),
+                                            WorkProduct: task.get('WorkProduct').Name,
+                                            State: task.get('State'),
+                                            Estimate: task.get('Estimate'),
+                                            ToDo: task.get('ToDo'),
+                                            leaf: true
+                                    }],
+                                    Capacity: capacity,
+                                    Estimate: task.get('Estimate'),
+                                    ToDo: task.get('ToDo'),
+                                    PercentageUsed: capacity > 0 ? (task.get('Estimate')/capacity)*100:0,
+                                });
+                              
+                            }
+                            item.Estimate += task.get('Estimate');
+                            item.ToDo += task.get('ToDo');                                    
+                            item.Capacity += capacity;
+                            item.PercentageUsed = item.Capacity > 0 ? (item.Estimate/item.Capacity)*100:0;    
+
+                            return true;                          
+                        }
+                    },me);
+
+                    if(teamExists.length < 1){
+                        task = {
+                            Team: task.get('Project').Name,
+                            children: [{
+                                User: task.get('Owner').DisplayName,
+                                children: [{
+                                    Name: task.get('Name'),
+                                    FormattedID: task.get('FormattedID'),
+                                    WorkProduct: task.get('WorkProduct').Name,
+                                    State: task.get('State'),
+                                    Estimate: task.get('Estimate'),
+                                    ToDo: task.get('ToDo'),
+                                    leaf: true
+                                }],
+                                Capacity: capacity,
+                                Estimate: task.get('Estimate'),
+                                ToDo: task.get('ToDo'),
+                                PercentageUsed: capacity > 0 ? (task.get('Estimate')/capacity)*100:0
+                            }],
+                            Capacity: capacity,
+                            Estimate: task.get('Estimate'),
+                            ToDo: task.get('ToDo'),
+                            PercentageUsed: capacity > 0 ? (task.get('Estimate')/capacity)*100:0                            
+
+                        }    
+                        tasks.push(task);                    
                     }
 
-                    tasks.push(task);
+
+                    
+                    // task = {
+                    //     Team: task.get('Project').Name,
+                    //     User: task.get('Owner').DisplayName,
+                    //     Name: task.get('Name'),
+                    //     FormattedID: task.get('FormattedID'),
+                    //     WorkProduct: task.get('WorkProduct').Name,
+                    //     State: task.get('State'),
+                    //     PercentageUsed: capacity > 0 ? (task.get('Estimate')/capacity)*100:0,
+                    //     Capacity: capacity,
+                    //     Estimate: task.get('Estimate'),
+                    //     ToDo: task.get('ToDo')
+                    // }
+
+                    //tasks.push(task);
                 });
 
-                var store = Ext.create('Rally.data.custom.Store', {
-                    data: tasks,
-                    scope: me
-                });
+                // //{ "iteration 1": { "records": { "av": [o,o,o] } , { "pv": [o,o,o] } } }
+                // //{ "Team A": {"User A": [task,task,task]}}
+                // var hash = {};
+
+                // Ext.Array.each(tasks, function(task){
+                //     var team = task.Team;
+                //     // var name = task.Name;
+                //     // var taskHash = {};
+                //     // taskHash[name] = [];
+                //     if ( Ext.isEmpty(hash[team])){
+                //         hash[team] = {Team: team,children};
+                //     }
+                //     hash[team] = ;
+                // });
+
+                // var store = Ext.create('Rally.data.custom.Store', {
+                //     data: tasks,
+                //     scope: me
+                // });
+
+
+                var store = Ext.create('Ext.data.TreeStore', {
+                                model: 'TSModel',
+                                root: {
+                                    expanded: true,
+                                    children: tasks
+                                }
+                            });
+
+
 
                 //deferred.resolve(store);                    
 
-                me._displayGrid(store);
+                me._displayGridNew(store);
             },
             failure: function(error_message){
                 alert(error_message);
@@ -980,22 +1108,88 @@ Ext.define("TSApp", {
     },
 
     
-    _displayGrid: function(store,field_names){
-        this.down('#display_box').removeAll();
+    // _displayGrid: function(store,field_names){
+    //     this.down('#display_box').removeAll();
+
+    //     var grid = {
+    //         xtype: 'rallygrid',
+    //         store: store,
+    //         showRowActionsColumn: false,
+    //         columnCfgs: [
+    //                     {
+    //                         text: 'Team', 
+    //                         dataIndex: 'Team',
+    //                         flex:1
+    //                     },
+    //                     {
+    //                         text: 'User', 
+    //                         dataIndex: 'User'
+    //                     },
+    //                     {
+    //                         text: 'FormattedID', 
+    //                         dataIndex: 'FormattedID'
+    //                     },
+    //                     {
+    //                         text: 'Name', 
+    //                         dataIndex: 'Name'
+    //                     },
+    //                     {
+    //                         text: 'Work Product', 
+    //                         dataIndex: 'WorkProduct'
+    //                     },
+    //                     {
+    //                         text: 'State', 
+    //                         dataIndex: 'State'
+    //                     },
+    //                     {
+    //                         text: '% Used',
+    //                         dataIndex: 'PercentageUsed',
+    //                         renderer: function(value){
+    //                             return Ext.util.Format.number(value,'0.00') + "%";
+    //                         }
+    //                     },
+    //                     {
+    //                         text: 'Capacity',
+    //                         dataIndex:'Capacity'
+    //                     },
+    //                     {
+    //                         text: 'Estimate',
+    //                         dataIndex: 'Estimate'
+    //                     },
+    //                     {
+    //                         text: 'To Do',
+    //                         dataIndex: 'ToDo'
+    //                     }
+    //                     ]
+    //     };
+
+    //     this.down('#display_box').add(grid);
+
+    // },
+
+
+
+    _displayGridNew: function(store){
+        var me = this
+        me.down('#display_box').removeAll();
 
         var grid = {
-            xtype: 'rallygrid',
+            xtype:'treepanel',
+            title: 'Team Status By Team',
+            itemId: 'teamTreeGrid',
             store: store,
-            showRowActionsColumn: false,
-            columnCfgs: [
+            cls: 'rally-grid',
+            columns: [
                         {
+                            xtype:'treecolumn',
                             text: 'Team', 
                             dataIndex: 'Team',
-                            flex:1
+                            flex: 1
                         },
                         {
                             text: 'User', 
-                            dataIndex: 'User'
+                            dataIndex: 'User',
+                            flex: 1
                         },
                         {
                             text: 'FormattedID', 
@@ -1016,31 +1210,54 @@ Ext.define("TSApp", {
                         {
                             text: '% Used',
                             dataIndex: 'PercentageUsed',
-                            renderer: function(value){
-                                return Ext.util.Format.number(value,'0.00') + "%";
+                            renderer: function(PercentageUsed,metaData,record){
+                                if(!record.get('leaf')){
+                                    metaData.style = 'font-weight: bold;font-style: italic;';                                
+                                }
+                                return PercentageUsed ? Ext.util.Format.number(PercentageUsed,'0.00') + "%":"";
                             }
                         },
                         {
                             text: 'Capacity',
-                            dataIndex:'Capacity'
+                            dataIndex:'Capacity',
+                            renderer: function(Capacity,metaData,record){
+                                if(!record.get('leaf')){
+                                    metaData.style = 'font-weight: bold;font-style: italic;';                                
+                                }
+                                return Capacity > 0 ? Capacity:"";
+                            }                            
                         },
                         {
                             text: 'Estimate',
-                            dataIndex: 'Estimate'
+                            dataIndex: 'Estimate',
+                            renderer: function(Estimate,metaData,record){
+                                if(!record.get('leaf')){
+                                    metaData.style = 'font-weight: bold;font-style: italic;';                                
+                                }
+                                return Estimate > 0 ? Estimate:"";
+                            }
                         },
                         {
                             text: 'To Do',
-                            dataIndex: 'ToDo'
+                            dataIndex: 'ToDo',
+                            renderer: function(ToDo,metaData,record){
+                                if(!record.get('leaf')){
+                                    metaData.style = 'font-weight: bold;font-style: italic;';                                
+                                }
+                                return ToDo > 0 ? ToDo:"";
+                            }
                         }
-                        ]
+            ],
+            
+            rootVisible: false
         };
 
-        this.down('#display_box').add(grid);
-
+        me.down('#display_box').add(grid);
+        me.down('#teamTreeGrid').expandAll();
     },
 
     _export: function(){
-        var grid = this.down('rallygrid');
+        var grid = this.down('#teamTreeGrid');
         var me = this;
 
         if ( !grid ) { return; }
