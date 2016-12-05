@@ -92,7 +92,7 @@ Ext.define("TSApp", {
             scope: me,
             success: function(results) {
                 
-                this.logger.log('Query results',results);
+                //this.logger.log('Query results',results);
 
                 //process results to create a custom grid. 
 
@@ -193,45 +193,10 @@ Ext.define("TSApp", {
                         tasks.push(task);                    
                     }
 
-
-                    
-                    // task = {
-                    //     Team: task.get('Project').Name,
-                    //     User: task.get('Owner').DisplayName,
-                    //     Name: task.get('Name'),
-                    //     FormattedID: task.get('FormattedID'),
-                    //     WorkProduct: task.get('WorkProduct').Name,
-                    //     State: task.get('State'),
-                    //     PercentageUsed: capacity > 0 ? (task.get('Estimate')/capacity)*100:0,
-                    //     Capacity: capacity,
-                    //     Estimate: task.get('Estimate'),
-                    //     ToDo: task.get('ToDo')
-                    // }
-
-                    //tasks.push(task);
                 });
 
-                // //{ "iteration 1": { "records": { "av": [o,o,o] } , { "pv": [o,o,o] } } }
-                // //{ "Team A": {"User A": [task,task,task]}}
-                // var hash = {};
-
-                // Ext.Array.each(tasks, function(task){
-                //     var team = task.Team;
-                //     // var name = task.Name;
-                //     // var taskHash = {};
-                //     // taskHash[name] = [];
-                //     if ( Ext.isEmpty(hash[team])){
-                //         hash[team] = {Team: team,children};
-                //     }
-                //     hash[team] = ;
-                // });
-
-                // var store = Ext.create('Rally.data.custom.Store', {
-                //     data: tasks,
-                //     scope: me
-                // });
-
-
+                me.tasks = tasks;
+                me._create_csv();
                 var store = Ext.create('Ext.data.TreeStore', {
                                 model: 'TSModel',
                                 root: {
@@ -239,9 +204,6 @@ Ext.define("TSApp", {
                                     children: tasks
                                 }
                             });
-
-
-
                 //deferred.resolve(store);                    
 
                 me._displayGridNew(store);
@@ -260,7 +222,7 @@ Ext.define("TSApp", {
     _loadAStoreWithAPromise: function(model_name, model_fields, model_filters){
         var deferred = Ext.create('Deft.Deferred');
         var me = this;
-        this.logger.log("Starting load:",model_name,model_fields);
+        //this.logger.log("Starting load:",model_name,model_fields);
           
         Ext.create('Rally.data.wsapi.Store', {
             model: model_name,
@@ -279,69 +241,7 @@ Ext.define("TSApp", {
         return deferred.promise;
     },
 
-    
-    // _displayGrid: function(store,field_names){
-    //     this.down('#display_box').removeAll();
-
-    //     var grid = {
-    //         xtype: 'rallygrid',
-    //         store: store,
-    //         showRowActionsColumn: false,
-    //         columnCfgs: [
-    //                     {
-    //                         text: 'Team', 
-    //                         dataIndex: 'Team',
-    //                         flex:1
-    //                     },
-    //                     {
-    //                         text: 'User', 
-    //                         dataIndex: 'User'
-    //                     },
-    //                     {
-    //                         text: 'FormattedID', 
-    //                         dataIndex: 'FormattedID'
-    //                     },
-    //                     {
-    //                         text: 'Name', 
-    //                         dataIndex: 'Name'
-    //                     },
-    //                     {
-    //                         text: 'Work Product', 
-    //                         dataIndex: 'WorkProduct'
-    //                     },
-    //                     {
-    //                         text: 'State', 
-    //                         dataIndex: 'State'
-    //                     },
-    //                     {
-    //                         text: '% Used',
-    //                         dataIndex: 'PercentageUsed',
-    //                         renderer: function(value){
-    //                             return Ext.util.Format.number(value,'0.00') + "%";
-    //                         }
-    //                     },
-    //                     {
-    //                         text: 'Capacity',
-    //                         dataIndex:'Capacity'
-    //                     },
-    //                     {
-    //                         text: 'Estimate',
-    //                         dataIndex: 'Estimate'
-    //                     },
-    //                     {
-    //                         text: 'To Do',
-    //                         dataIndex: 'ToDo'
-    //                     }
-    //                     ]
-    //     };
-
-    //     this.down('#display_box').add(grid);
-
-    // },
-
-
-
-    _displayGridNew: function(store){
+     _displayGridNew: function(store){
         var me = this
         me.down('#display_box').removeAll();
 
@@ -351,7 +251,17 @@ Ext.define("TSApp", {
             itemId: 'teamTreeGrid',
             store: store,
             cls: 'rally-grid',
-            columns: [
+            columns: me._getColumns(),
+            
+            rootVisible: true
+        };
+
+        me.down('#display_box').add(grid);
+        me.down('#teamTreeGrid').expandAll();
+    },
+
+    _getColumns: function(){
+        return [
                         {
                             xtype:'treecolumn',
                             text: 'Team', 
@@ -419,41 +329,71 @@ Ext.define("TSApp", {
                                 return ToDo > 0 ? ToDo:"";
                             }
                         }
-            ],
-            
-            rootVisible: false
-        };
-
-        me.down('#display_box').add(grid);
-        me.down('#teamTreeGrid').expandAll();
+            ];
     },
+
 
     _export: function(){
-        var grid = this.down('#teamTreeGrid');
+        var me = this;
+        if ( !me.tasks ) { return; }
+        
+        var filename = Ext.String.format('team_status_by_team.csv');
+
+        Rally.technicalservices.FileUtilities.saveCSVToFile(me.CSV,filename);
+    },
+
+    _create_csv: function(){
         var me = this;
 
-        if ( !grid ) { return; }
+        if ( !me.tasks ) { return; }
         
-        this.logger.log('_export',grid);
+        me.setLoading("Generating CSV");
 
-        var filename = Ext.String.format('dependency-snapsot.csv');
+        var CSV = "";    
+        var row = "";
+        // Add the column headers
+        var columns = [];
+        Ext.Array.each(me._getColumns(),function(col){
+            row += col.dataIndex + ',';
+            columns.push(col.dataIndex);
+        })
 
-        this.setLoading("Generating CSV");
-        Deft.Chain.sequence([
-            function() { return Rally.technicalservices.FileUtilities._getCSVFromCustomBackedGrid(grid) } 
-        ]).then({
-            scope: this,
-            success: function(csv){
-                if (csv && csv.length > 0){
-                    Rally.technicalservices.FileUtilities.saveCSVToFile(csv,filename);
-                } else {
-                    Rally.ui.notify.Notifier.showWarning({message: 'No data to export'});
-                }
-                
+        CSV += row + '\r\n';
+
+        // Loop through tasks hash and create the csv 
+        Ext.Array.each(me.tasks,function(task){
+            row = "";
+            Ext.Array.each(columns,function(col){
+                row += task[col] ? task[col] + ',':',';
+            },me)
+            CSV += row + '\r\n';
+
+            if(task.children && task.children.length > 0){
+                Ext.Array.each(task.children,function(child){
+                    row = "";
+                    Ext.Array.each(columns,function(col){
+                        row += child[col] ? child[col] + ',':',';
+                    },me)
+                    CSV += row + '\r\n';
+
+                    if(child.children && child.children.length > 0){
+                        Ext.Array.each(child.children,function(gchild){
+                            row = "";
+                            Ext.Array.each(columns,function(col){
+                                row += gchild[col] ? gchild[col] + ',':',';
+                            },me)
+                            CSV += row + '\r\n';                             
+                        });
+                    }
+                },me);
             }
-        }).always(function() { me.setLoading(false); });
+        },me);
+
+        me.CSV = CSV;
+        me.setLoading(false);
+        me.logger.log(CSV);
     },
-    
+
     getOptions: function() {
         return [
             {
