@@ -7,7 +7,8 @@ Ext.define('TSModel', {
         { name: 'Name', type:'string' },
         { name: 'WorkProduct', type:'string' },
         { name: 'State', type:'string' },
-        { name: 'PercentageUsed', type:'string' },
+        { name: 'PercentageUsedEstimate', type:'string' },
+        { name: 'PercentageUsedToDo', type:'string' },
         { name: 'Capacity', type:'number' },
         { name: 'Estimate', type:'number' },
         { name: 'ToDo', type:'number' }
@@ -106,6 +107,7 @@ Ext.define("TSApp", {
 
                     totalToDo = totalToDo + (task.get('ToDo') > 0 ? task.get('ToDo'):0);
                     totalEstimate = totalEstimate + (task.get('Estimate') > 0 ? task.get('Estimate'):0);
+                    var userName = task.get('Owner')  ? task.get('Owner')._refObjectName : "No Owner Entry";
 
                     var capacity = 0;
                     Ext.Array.each(results[1],function(uic){
@@ -123,7 +125,7 @@ Ext.define("TSApp", {
                         if(item.Team == task.get('Project').Name){
 
                             userExists = Ext.Array.filter(item.children, function(child) {
-                                if(child.User == task.get('Owner')._refObjectName){
+                                if(child.User == userName){
                                     //child.User =  task.get('Owner')._refObjectName,                                    
                                     child.children.push({
                                         Name: task.get('Name'),
@@ -137,15 +139,15 @@ Ext.define("TSApp", {
                                     child.Estimate += task.get('Estimate');
                                     child.ToDo += task.get('ToDo');                                    
                                     child.Capacity = capacity;
-                                    child.PercentageUsed = child.Capacity > 0 ? (child.Estimate/child.Capacity)*100:0;
+                                    child.PercentageUsedEstimate = child.Capacity > 0 ? (child.Estimate/child.Capacity)*100:0;
+                                    child.PercentageUsedToDo = child.Capacity > 0 ? (child.ToDo/child.Capacity)*100:0;
                                     return true;       
                                 }
                             },me);
 
                             if(userExists.length < 1){
-
                                 item.children.push({
-                                    User: task.get('Owner')._refObjectName,
+                                    User: userName,
                                     children: [{
                                             Name: task.get('Name'),
                                             FormattedID: task.get('FormattedID'),
@@ -158,14 +160,16 @@ Ext.define("TSApp", {
                                     Capacity: capacity,
                                     Estimate: task.get('Estimate'),
                                     ToDo: task.get('ToDo'),
-                                    PercentageUsed: capacity > 0 ? (task.get('Estimate')/capacity)*100:0,
+                                    PercentageUsedEstimate: capacity > 0 ? (task.get('Estimate')/capacity)*100:0,
+                                    PercentageUsedToDo: capacity > 0 ? (task.get('ToDo')/capacity)*100:0
                                 });
                               
                             }
                             item.Estimate += task.get('Estimate');
                             item.ToDo += task.get('ToDo');                                    
                             item.Capacity += capacity;
-                            item.PercentageUsed = item.Capacity > 0 ? (item.Estimate/item.Capacity)*100:0;    
+                            item.PercentageUsedEstimate = item.Capacity > 0 ? (item.Estimate/item.Capacity)*100:0;    
+                            item.PercentageUsedToDo = item.Capacity > 0 ? (item.ToDo/item.Capacity)*100:0;    
                             return true;                          
                         }
                     },me);
@@ -174,7 +178,7 @@ Ext.define("TSApp", {
                         task = {
                             Team: task.get('Project').Name,
                             children: [{
-                                User: task.get('Owner')._refObjectName,
+                                User: userName,
                                 children: [{
                                     Name: task.get('Name'),
                                     FormattedID: task.get('FormattedID'),
@@ -187,12 +191,14 @@ Ext.define("TSApp", {
                                 Capacity: capacity,
                                 Estimate: task.get('Estimate'),
                                 ToDo: task.get('ToDo'),
-                                PercentageUsed: capacity > 0 ? (task.get('Estimate')/capacity)*100:0
+                                PercentageUsedEstimate: capacity > 0 ? (task.get('Estimate')/capacity)*100:0,
+                                PercentageUsedToDo: capacity > 0 ? (task.get('ToDo')/capacity)*100:0
                             }],
                             Capacity: capacity,
                             Estimate: task.get('Estimate'),
                             ToDo: task.get('ToDo'),
-                            PercentageUsed: capacity > 0 ? (task.get('Estimate')/capacity)*100:0                            
+                            PercentageUsedEstimate: capacity > 0 ? (task.get('Estimate')/capacity)*100:0,                            
+                            PercentageUsedToDo: capacity > 0 ? (task.get('ToDo')/capacity)*100:0                            
 
                         }    
                         tasks.push(task);                    
@@ -212,7 +218,8 @@ Ext.define("TSApp", {
                                     Capacity: totalCapacity,
                                     Estimate: totalEstimate,
                                     ToDo: totalToDo,
-                                    PercentageUsed: totalCapacity > 0 ? (totalEstimate/totalCapacity)*100:0                                               
+                                    PercentageUsedEstimate: totalCapacity > 0 ? (totalEstimate/totalCapacity)*100:0,                                               
+                                    PercentageUsedToDo: totalCapacity > 0 ? (totalToDo/totalCapacity)*100:0                                               
                                 }
                             });
                 //deferred.resolve(store);                    
@@ -263,7 +270,7 @@ Ext.define("TSApp", {
             cls: 'rally-grid',
             columns: me._getColumns(),
             style: {
-                 border: '1px solid black'
+                 "border": '1px solid black'
             },
             rootVisible: true
             // ,
@@ -320,6 +327,10 @@ Ext.define("TSApp", {
                             flex: 1
                         },
                         {
+                            text: 'US Name', 
+                            dataIndex: 'WorkProduct',
+                            flex: 2
+                        },                        {
                             text: 'Task ID', 
                             dataIndex: 'FormattedID',
                             flex: 1
@@ -330,30 +341,8 @@ Ext.define("TSApp", {
                             flex: 2
                         },
                         {
-                            text: 'US Name', 
-                            dataIndex: 'WorkProduct',
-                            flex: 2
-                        },
-                        {
                             text: 'Task State', 
                             dataIndex: 'State',
-                            flex: 1
-                        },
-                        {
-                            text: '% Used',
-                            dataIndex: 'PercentageUsed',
-                            renderer: function(PercentageUsed,metaData,record){
-                                if(record.get('Team') == me.context.getProject().Name ){
-                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#A9A9A9;';                                
-                                }                                
-                                if(record.get('Team')!="" && record.get('Team') != me.context.getProject().Name ){
-                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#C0C0C0;';                                
-                                }
-                                if(record.get('User')!=""){
-                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#D3D3D3;';                                
-                                }                              
-                                return PercentageUsed ? Ext.util.Format.number(PercentageUsed,'0.00') + "%":"";
-                            },
                             flex: 1
                         },
                         {
@@ -404,6 +393,39 @@ Ext.define("TSApp", {
                                     metaData.style = 'font-weight: bold;font-style: italic;background-color:#D3D3D3;';                                
                                 }                                   
                                 return ToDo //> 0 ? ToDo:0;
+                            },
+                            flex: 1
+                        },{
+                            text: '% Used (Estimate)',
+                            dataIndex: 'PercentageUsedEstimate',
+                            renderer: function(PercentageUsedEstimate,metaData,record){
+                                if(record.get('Team') == me.context.getProject().Name ){
+                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#A9A9A9;';                                
+                                }                                
+                                if(record.get('Team')!="" && record.get('Team') != me.context.getProject().Name ){
+                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#C0C0C0;';                                
+                                }
+                                if(record.get('User')!=""){
+                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#D3D3D3;';                                
+                                }                              
+                                return PercentageUsedEstimate ? Ext.util.Format.number(PercentageUsedEstimate,'0.00') + "%":"";
+                            },
+                            flex: 1
+                        },
+                        {
+                            text: '% Used (ToDo)',
+                            dataIndex: 'PercentageUsedToDo',
+                            renderer: function(PercentageUsedToDo,metaData,record){
+                                if(record.get('Team') == me.context.getProject().Name ){
+                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#A9A9A9;';                                
+                                }                                
+                                if(record.get('Team')!="" && record.get('Team') != me.context.getProject().Name ){
+                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#C0C0C0;';                                
+                                }
+                                if(record.get('User')!=""){
+                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#D3D3D3;';                                
+                                }                              
+                                return PercentageUsedToDo ? Ext.util.Format.number(PercentageUsedToDo,'0.00') + "%":"";
                             },
                             flex: 1
                         }
