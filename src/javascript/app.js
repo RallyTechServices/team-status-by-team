@@ -82,7 +82,7 @@ Ext.define("TSApp", {
         var me = this;
 
         var model_name = 'Task',
-            field_names = ['ObjectID','FormattedID','Name','Project','State','Owner','WorkProduct','ToDo','Estimate','Iteration','UserIterationCapacities','DisplayName'],
+            field_names = ['ObjectID','FormattedID','Name','Project','State','Owner','WorkProduct','ToDo','Estimate','Iteration','UserIterationCapacities','DisplayName',"FirstName",'LastName'],
             iteration_field_names = ['ObjectID','FormattedID','Name','Project','Iteration','Capacity','User'],
             filters = [];
         var iteration_name = me.iteration.rawValue;
@@ -107,7 +107,7 @@ Ext.define("TSApp", {
 
                     totalToDo = totalToDo + (task.get('ToDo') > 0 ? task.get('ToDo'):0);
                     totalEstimate = totalEstimate + (task.get('Estimate') > 0 ? task.get('Estimate'):0);
-                    var userName = task.get('Owner')  ? task.get('Owner')._refObjectName : "No Owner Entry";
+                    var userName = task.get('Owner')  ? ((task.get('Owner').FirstName ? task.get('Owner').FirstName : "" ) + " " + (task.get('Owner').LastName ? task.get('Owner').LastName.slice(0,1) : "" )) : "No Owner Entry";
 
                     var capacity = 0;
                     Ext.Array.each(results[1],function(uic){
@@ -357,9 +357,13 @@ Ext.define("TSApp", {
                                 }
                                 if(record.get('User')!=""){
                                     metaData.style = 'font-weight: bold;font-style: italic;background-color:#D3D3D3;';                                
-                                }                               
-                                return Capacity //> 0 ? Capacity:"";
-                            }    ,
+                                }
+                                if(record.get('leaf')){
+                                    return ""
+                                }else{
+                                    return Capacity //> 0 ? Capacity:"";
+                                }
+                            },
                             flex: 1                        
                         },
                         {
@@ -396,7 +400,7 @@ Ext.define("TSApp", {
                             },
                             flex: 1
                         },{
-                            text: '% Used (Estimate)',
+                            text: '% Used <BR>(Estimate)',
                             dataIndex: 'PercentageUsedEstimate',
                             renderer: function(PercentageUsedEstimate,metaData,record){
                                 if(record.get('Team') == me.context.getProject().Name ){
@@ -408,12 +412,12 @@ Ext.define("TSApp", {
                                 if(record.get('User')!=""){
                                     metaData.style = 'font-weight: bold;font-style: italic;background-color:#D3D3D3;';                                
                                 }                              
-                                return PercentageUsedEstimate ? Ext.util.Format.number(PercentageUsedEstimate,'0.00') + "%":"";
+                                return PercentageUsedEstimate ? Ext.util.Format.number(PercentageUsedEstimate,'0') + "%":"";
                             },
                             flex: 1
                         },
                         {
-                            text: '% Used (ToDo)',
+                            text: '% Used <BR>(ToDo)',
                             dataIndex: 'PercentageUsedToDo',
                             renderer: function(PercentageUsedToDo,metaData,record){
                                 if(record.get('Team') == me.context.getProject().Name ){
@@ -425,7 +429,7 @@ Ext.define("TSApp", {
                                 if(record.get('User')!=""){
                                     metaData.style = 'font-weight: bold;font-style: italic;background-color:#D3D3D3;';                                
                                 }                              
-                                return PercentageUsedToDo ? Ext.util.Format.number(PercentageUsedToDo,'0.00') + "%":"";
+                                return PercentageUsedToDo ? Ext.util.Format.number(PercentageUsedToDo,'0') + "%":"";
                             },
                             flex: 1
                         }
