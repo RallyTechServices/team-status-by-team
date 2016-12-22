@@ -80,7 +80,7 @@ Ext.define("TSApp", {
 
     _queryAndDisplayGrid: function(){
         var me = this;
-
+        me.setLoading("Loading");
         var model_name = 'Task',
             field_names = ['ObjectID','FormattedID','Name','Project','State','Owner','WorkProduct','ToDo','Estimate','Iteration','UserIterationCapacities','DisplayName',"FirstName",'LastName'],
             iteration_field_names = ['ObjectID','FormattedID','Name','Project','Iteration','Capacity','User'],
@@ -115,10 +115,9 @@ Ext.define("TSApp", {
                         var iteration_oid = task.get('Iteration') && task.get('Iteration').ObjectID ? task.get('Iteration').ObjectID:null;
                         if(task_oid == uic.get('User').ObjectID && iteration_oid == uic.get('Iteration').ObjectID){
                             capacity = uic.get('Capacity') ? uic.get('Capacity') : 0;
-                            me.logger.log('uic now',task.get('Owner')._refObjectName, uic.get('Capacity'));
+                            //me.logger.log('uic now',task.get('Owner')._refObjectName, uic.get('Capacity'));
                         }
                     },me);
-                    totalCapacity += capacity; 
                     var teamExists = null;
                     teamExists = Ext.Array.filter(tasks, function(item) {
                         var userExists = null;
@@ -146,6 +145,8 @@ Ext.define("TSApp", {
                             },me);
 
                             if(userExists.length < 1){
+                                totalCapacity += capacity; 
+
                                 item.children.push({
                                     User: userName,
                                     children: [{
@@ -167,7 +168,7 @@ Ext.define("TSApp", {
                             }
                             item.Estimate += task.get('Estimate');
                             item.ToDo += task.get('ToDo');                                    
-                            item.Capacity += capacity;
+                            item.Capacity =0;
                             item.PercentageUsedEstimate = item.Capacity > 0 ? (item.Estimate/item.Capacity)*100:0;    
                             item.PercentageUsedToDo = item.Capacity > 0 ? (item.ToDo/item.Capacity)*100:0;    
                             return true;                          
@@ -175,6 +176,7 @@ Ext.define("TSApp", {
                     },me);
 
                     if(teamExists.length < 1){
+                        totalCapacity += capacity;
                         task = {
                             Team: task.get('Project').Name,
                             children: [{
@@ -194,7 +196,7 @@ Ext.define("TSApp", {
                                 PercentageUsedEstimate: capacity > 0 ? (task.get('Estimate')/capacity)*100:0,
                                 PercentageUsedToDo: capacity > 0 ? (task.get('ToDo')/capacity)*100:0
                             }],
-                            Capacity: capacity,
+                            Capacity: 0,
                             Estimate: task.get('Estimate'),
                             ToDo: task.get('ToDo'),
                             PercentageUsedEstimate: capacity > 0 ? (task.get('Estimate')/capacity)*100:0,                            
@@ -206,9 +208,22 @@ Ext.define("TSApp", {
 
                 });
 
-                me.tasks = tasks;
-                me._create_csv();
+                Ext.Array.each(tasks,function(team){
+                    var team_capacity = 0;
+                    Ext.Array.each(team.children,function(user){
+                        team_capacity += user.Capacity;
+                    })
+                    team.PercentageUsedToDo = team_capacity > 0 ? (team.ToDo/team_capacity)*100:0;
+                    team.PercentageUsedEstimate = team_capacity > 0 ? (team.Estimate/team_capacity)*100:0;
+                    team.Capacity = team_capacity;
+                });
+
                 me.topProject = me.context.getProject().Name + " - Totals";
+
+                me.tasks = tasks;
+
+                me._create_csv(totalCapacity,totalEstimate, totalToDo );
+                
                 var store = Ext.create('Ext.data.TreeStore', {
                                 model: 'TSModel',
                                 root: {
@@ -225,6 +240,7 @@ Ext.define("TSApp", {
                 //deferred.resolve(store);                    
 
                 me._displayGridNew(store);
+                me.setLoading(false);                
             },
             failure: function(error_message){
                 alert(error_message);
@@ -273,39 +289,6 @@ Ext.define("TSApp", {
                  "border": '1px solid black'
             },
             rootVisible: true
-            // ,
-            // viewConfig: {
-            //     listeners: {
-            //         refresh: function(view){
-            //             var nodes = view.getNodes();
-            //             for (var i = 0; i < nodes.length; i++) {
-                            
-            //                 var node = nodes[i];
-                            
-            //                 // get node record
-            //                 var record = view.getRecord(node);
-                            
-            //                 // get color from record data
-            //                 var color = '#fff';
-            //                 if ( record.get('Team')!="" ) {
-            //                     color = "#C0C0C0";
-            //                 }
-                            
-            //                 // get all td elements
-            //                 var cells = Ext.get(node).query('td');  
-                            
-            //                 // set bacground color to all row td elements
-            //                 for(var j = 0; j < cells.length; j++) {
-            //                     Ext.fly(cells[j]).setStyle('background-color', color);
-            //                     // if ( record.get('Team')!=""  ) {
-            //                     //     Ext.fly(cells[j]).addCls('business');
-            //                     // }
-            //                 }                                       
-            //             }
-            //         }
-            //     }
-            // }
-
         };
 
         me.down('#display_box').add(grid);
@@ -319,17 +302,17 @@ Ext.define("TSApp", {
                             xtype:'treecolumn',
                             text: 'Team', 
                             dataIndex: 'Team',
-                            flex: 2
+                            flex: 3
                         },
                         {
                             text: 'User', 
                             dataIndex: 'User',
-                            flex: 1
+                            flex: 3
                         },
                         {
                             text: 'US Name', 
                             dataIndex: 'WorkProduct',
-                            flex: 2
+                            flex: 3
                         },                        {
                             text: 'Task ID', 
                             dataIndex: 'FormattedID',
@@ -338,12 +321,12 @@ Ext.define("TSApp", {
                         {
                             text: 'Task Name', 
                             dataIndex: 'Name',
-                            flex: 2
+                            flex: 3
                         },
                         {
                             text: 'Task State', 
                             dataIndex: 'State',
-                            flex: 1
+                            flex: 2
                         },
                         {
                             text: 'Capacity',
@@ -417,7 +400,7 @@ Ext.define("TSApp", {
                             flex: 1
                         },
                         {
-                            text: '% Used <BR>(ToDo)',
+                            text: '% Used <BR>(To Do)',
                             dataIndex: 'PercentageUsedToDo',
                             renderer: function(PercentageUsedToDo,metaData,record){
                                 if(record.get('Team') == me.context.getProject().Name ){
@@ -446,8 +429,18 @@ Ext.define("TSApp", {
         Rally.technicalservices.FileUtilities.saveCSVToFile(me.CSV,filename);
     },
 
-    _create_csv: function(){
+    _create_csv: function(totalCapacity,totalEstimate, totalToDo){
         var me = this;
+
+        totals = {
+            Team: me.topProject,
+            Capacity: totalCapacity,
+            Estimate: totalEstimate,
+            ToDo: totalToDo,
+            PercentageUsedEstimate: totalCapacity > 0 ? Math.round((totalEstimate/totalCapacity)*100):0,
+            PercentageUsedToDo: totalCapacity > 0 ? Math.round((totalToDo/totalCapacity)*100):0                                               
+        }
+
 
         if ( !me.tasks ) { return; }
         
@@ -458,12 +451,19 @@ Ext.define("TSApp", {
         // Add the column headers
         var columns = [];
         Ext.Array.each(me._getColumns(),function(col){
-            row += col.dataIndex + ',';
+            row += col.text.replace("<BR>","") + ',';
             columns.push(col.dataIndex);
         })
 
         CSV += row + '\r\n';
 
+        //Write the totals row.
+        row = "";
+
+        Ext.Array.each(columns,function(col){
+            row += totals[col] ? totals[col] + ',':',';
+        },me)
+        CSV += row + '\r\n';
         // Loop through tasks hash and create the csv 
         Ext.Array.each(me.tasks,function(task){
             row = "";
@@ -484,7 +484,11 @@ Ext.define("TSApp", {
                         Ext.Array.each(child.children,function(gchild){
                             row = "";
                             Ext.Array.each(columns,function(col){
-                                row += gchild[col] ? gchild[col] + ',':',';
+                                if(col == "Name" || col == "WorkProduct"){
+                                    row += gchild[col] ? '"' + gchild[col] + '"' + ',':',';
+                                }else{
+                                    row += gchild[col] ? gchild[col] + ',':',';
+                                }
                             },me)
                             CSV += row + '\r\n';                             
                         });
@@ -495,7 +499,7 @@ Ext.define("TSApp", {
 
         me.CSV = CSV;
         me.setLoading(false);
-        me.logger.log(CSV);
+        //me.logger.log(CSV);
     },
 
     getOptions: function() {
