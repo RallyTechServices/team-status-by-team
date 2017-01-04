@@ -485,7 +485,7 @@ Ext.define("TSApp", {
                             row = "";
                             Ext.Array.each(columns,function(col){
                                 if(col == "Name" || col == "WorkProduct"){
-                                    row += gchild[col] ? '"' + gchild[col].replace('"','\"') + '"' + ',':',';
+                                    row += gchild[col] ? '"' + gchild[col].replace(/"/g, '""') + '"' + ',':',';
                                 }else{
                                     row += gchild[col] ? gchild[col] + ',':',';
                                 }
