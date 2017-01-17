@@ -3,13 +3,13 @@
 <head>
     <title>Team Status By Team</title>
     <!--  (c) 2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Tue Jan 10 2017 12:54:33 GMT-0800 (PST) -->
+    <!--  Build Date: Thu Jan 12 2017 15:49:48 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Tue Jan 10 2017 12:54:33 GMT-0800 (PST)";
+        var APP_BUILD_DATE = "Thu Jan 12 2017 15:49:48 GMT-0800 (PST)";
         var STORY    = "US802";
         var BUILDER  = "arajaraman";
-        var CHECKSUM = 50851305168;
+        var CHECKSUM = 50943082844;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -1207,6 +1207,8 @@ Ext.define("TSApp", {
             store: store,
             cls: 'rally-grid',
             columns: me._getColumns(),
+            scroll: true,
+            autoScroll:true,
             style: {
                  "border": '1px solid black'
             },

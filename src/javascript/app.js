@@ -379,6 +379,8 @@ Ext.define("TSApp", {
             store: store,
             cls: 'rally-grid',
             columns: me._getColumns(),
+            scroll: true,
+            autoScroll:true,
             style: {
                  "border": '1px solid black'
             },
