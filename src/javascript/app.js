@@ -355,6 +355,10 @@ Ext.define("TSApp", {
             model: model_name,
             fetch: model_fields,
             filters: model_filters,
+            context: {
+                projectScopeUp: false
+            },
+            sorters: [{property:'ObjectID',direction:'ASC'}],
             compact: false
         }).load({
             callback : function(records, operation, successful) {
