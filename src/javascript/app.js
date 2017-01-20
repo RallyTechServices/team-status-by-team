@@ -358,8 +358,8 @@ Ext.define("TSApp", {
             context: {
                 projectScopeUp: false
             },
-            sorters: [{property:'ObjectID',direction:'ASC'}],
-            compact: false
+            compact: false,
+            limit: 'Infinity'
         }).load({
             callback : function(records, operation, successful) {
                 if (successful){
