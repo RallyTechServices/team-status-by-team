@@ -3,13 +3,13 @@
 <head>
     <title>Team Status By Team</title>
     <!--  (c) 2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Wed Jan 18 2017 14:33:26 GMT-0800 (PST) -->
+    <!--  Build Date: Fri Jan 20 2017 09:58:30 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Wed Jan 18 2017 14:33:26 GMT-0800 (PST)";
+        var APP_BUILD_DATE = "Fri Jan 20 2017 09:58:30 GMT-0800 (PST)";
         var STORY    = "US802";
         var BUILDER  = "arajaraman";
-        var CHECKSUM = 51193147631;
+        var CHECKSUM = 51097715071;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -1186,8 +1186,8 @@ Ext.define("TSApp", {
             context: {
                 projectScopeUp: false
             },
-            sorters: [{property:'ObjectID',direction:'ASC'}],
-            compact: false
+            compact: false,
+            limit: 'Infinity'
         }).load({
             callback : function(records, operation, successful) {
                 if (successful){
