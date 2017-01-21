@@ -6,6 +6,7 @@ Ext.define('TSModel', {
         { name: 'FormattedID', type:'string' },
         { name: 'Name', type:'string' },
         { name: 'WorkProduct', type:'string' },
+        { name: 'WorkProductID', type:'string' },
         { name: 'State', type:'string' },
         { name: 'PercentageUsedEstimate', type:'string' },
         { name: 'PercentageUsedToDo', type:'string' },
@@ -100,7 +101,7 @@ Ext.define("TSApp", {
                 var totalCapacity = 0;
                 var totalEstimate = 0;
                 var totalToDo = 0;
-                me.logger.log('uic',results[1]);
+                // me.logger.log('uic',results[1]);
 
                 var uic_hash = {};
                 //var teamExists = null;
@@ -109,7 +110,7 @@ Ext.define("TSApp", {
                     if(" "==userName){
                         userName = uic.get('User')._refObjectName;
                     }                    
-                    me.logger.log('userName',userName);
+                    // me.logger.log('userName',userName);
                     // teamExists = Ext.Array.filter(uic_hash, function(item) {
                     //     if(item.Team == uic.get('Project').Name){
                     //         item.Users.push({ObjectID: uic.get('ObjectID'), UserName: userName, Capacity: uic.get('Capacity')});
@@ -156,7 +157,7 @@ Ext.define("TSApp", {
                 });
 
                 me.uic_hash = uic_hash;
-                me.logger.log('uic_hash',uic_hash);
+                // me.logger.log('uic_hash',uic_hash);
 
                 Ext.Array.each(Ext.Object.getKeys(uic_hash),function(team){
                     tasks.push({
@@ -199,6 +200,7 @@ Ext.define("TSApp", {
                                         Name: task.get('Name'),
                                         FormattedID: task.get('FormattedID'),
                                         WorkProduct: task.get('WorkProduct').Name,
+                                        WorkProductID: task.get('WorkProduct').FormattedID,
                                         State: task.get('State'),
                                         Estimate: task.get('Estimate'),
                                         ToDo: task.get('ToDo'),
@@ -223,6 +225,7 @@ Ext.define("TSApp", {
                                             Name: task.get('Name'),
                                             FormattedID: task.get('FormattedID'),
                                             WorkProduct: task.get('WorkProduct').Name,
+                                            WorkProductID: task.get('WorkProduct').FormattedID,
                                             State: task.get('State'),
                                             Estimate: task.get('Estimate'),
                                             ToDo: task.get('ToDo'),
@@ -253,6 +256,7 @@ Ext.define("TSApp", {
                                     Name: task.get('Name'),
                                     FormattedID: task.get('FormattedID'),
                                     WorkProduct: task.get('WorkProduct').Name,
+                                    WorkProductID: task.get('WorkProduct').FormattedID,
                                     State: task.get('State'),
                                     Estimate: task.get('Estimate'),
                                     ToDo: task.get('ToDo'),
@@ -269,24 +273,6 @@ Ext.define("TSApp", {
                         task = {
                             Team: task.get('Project').Name,
                             children: me.uic_hash[task.get('Project').Name].Users,
-                            // children: Ext.Array.merge(me.uic_hash[task.get('Project').Name].Users,[{
-                            //     User: userName,
-                            //     //UserObjectID: task.get('Owner') ? task.get('Owner').ObjectID:0,
-                            //     children: [{
-                            //         Name: task.get('Name'),
-                            //         FormattedID: task.get('FormattedID'),
-                            //         WorkProduct: task.get('WorkProduct').Name,
-                            //         State: task.get('State'),
-                            //         Estimate: task.get('Estimate'),
-                            //         ToDo: task.get('ToDo'),
-                            //         leaf: true
-                            //     }],
-                            //     Capacity: capacity,
-                            //     Estimate: task.get('Estimate'),
-                            //     ToDo: task.get('ToDo'),
-                            //     PercentageUsedEstimate: capacity > 0 ? (task.get('Estimate')/capacity)*100:0,
-                            //     PercentageUsedToDo: capacity > 0 ? (task.get('ToDo')/capacity)*100:0
-                            // }]),
                             Capacity: 0,
                             Estimate: task.get('Estimate'),
                             ToDo: task.get('ToDo'),
@@ -408,6 +394,11 @@ Ext.define("TSApp", {
                             text: 'User', 
                             dataIndex: 'User',
                             flex: 3
+                        },
+                        {
+                            text: 'US ID', 
+                            dataIndex: 'WorkProductID',
+                            flex: 1
                         },
                         {
                             text: 'US Name', 
