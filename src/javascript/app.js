@@ -8,8 +8,8 @@ Ext.define('TSModel', {
         { name: 'WorkProduct', type:'string' },
         { name: 'WorkProductID', type:'string' },
         { name: 'State', type:'string' },
-        { name: 'PercentageUsedEstimate', type:'string' },
-        { name: 'PercentageUsedToDo', type:'string' },
+        { name: 'PercentageUsedEstimate', type:'number' },
+        { name: 'PercentageUsedToDo', type:'number' },
         { name: 'Capacity', type:'number' },
         { name: 'Estimate', type:'number' },
         { name: 'ToDo', type:'number' }
@@ -209,8 +209,8 @@ Ext.define("TSApp", {
                                     child.Estimate += task.get('Estimate');
                                     child.ToDo += task.get('ToDo');                                    
                                     child.Capacity = capacity;
-                                    child.PercentageUsedEstimate = child.Capacity > 0 ? Ext.util.Format.number((child.Estimate/child.Capacity)*100,'0'):0;
-                                    child.PercentageUsedToDo = child.Capacity > 0 ? Ext.util.Format.number((child.ToDo/child.Capacity)*100,'0'):0;
+                                    child.PercentageUsedEstimate = me._getPercentageUsedEstimate(child.Estimate,child.Capacity);
+                                    child.PercentageUsedToDo = me._getPercentageUsedToDo(child.ToDo,child.Capacity);
                                     return true;       
                                 }
                             },me);
@@ -234,16 +234,16 @@ Ext.define("TSApp", {
                                     Capacity: capacity,
                                     Estimate: task.get('Estimate'),
                                     ToDo: task.get('ToDo'),
-                                    PercentageUsedEstimate: capacity > 0 ? Ext.util.Format.number((task.get('Estimate')/capacity)*100,'0'):0,
-                                    PercentageUsedToDo: capacity > 0 ? Ext.util.Format.number((task.get('ToDo')/capacity)*100,'0'):0
+                                    PercentageUsedEstimate: me._getPercentageUsedEstimate(task.get('Estimate'),capacity),
+                                    PercentageUsedToDo: me._getPercentageUsedToDo(task.get('ToDo'),capacity)
                                 });
                               
                             }
                             item.Estimate += task.get('Estimate');
                             item.ToDo += task.get('ToDo');                                    
                             item.Capacity =0;
-                            item.PercentageUsedEstimate = item.Capacity > 0 ? Ext.util.Format.number((item.Estimate/item.Capacity)*100,'0'):0;    
-                            item.PercentageUsedToDo = item.Capacity > 0 ? Ext.util.Format.number((item.ToDo/item.Capacity)*100,'0'):0;    
+                            item.PercentageUsedEstimate = me._getPercentageUsedEstimate(item.Estimate,item.Capacity); 
+                            item.PercentageUsedToDo = me._getPercentageUsedToDo(item.ToDo,item.Capacity);
                             return true;                          
                         }
                     },me);
@@ -265,8 +265,8 @@ Ext.define("TSApp", {
                                 user.Capacity = capacity;
                                 user.Estimate = task.get('Estimate');
                                 user.ToDo = task.get('ToDo');
-                                user.PercentageUsedEstimate = capacity > 0 ? Ext.util.Format.number((task.get('Estimate')/capacity)*100,'0'):0;
-                                user.PercentageUsedToDo = capacity > 0 ? Ext.util.Format.number((task.get('ToDo')/capacity)*100,'0'):0;
+                                user.PercentageUsedEstimate = me._getPercentageUsedEstimate(task.get('Estimate'),capacity);
+                                user.PercentageUsedToDo = me._getPercentageUsedToDo(task.get('ToDo'),capacity);
                             }
                         })
                         //totalCapacity += capacity;
@@ -276,8 +276,8 @@ Ext.define("TSApp", {
                             Capacity: 0,
                             Estimate: task.get('Estimate'),
                             ToDo: task.get('ToDo'),
-                            PercentageUsedEstimate: capacity > 0 ? Ext.util.Format.number((task.get('Estimate')/capacity)*100,'0'):0,                            
-                            PercentageUsedToDo: capacity > 0 ? Ext.util.Format.number((task.get('ToDo')/capacity)*100,'0'):0                            
+                            PercentageUsedEstimate: me._getPercentageUsedEstimate(task.get('Estimate'),capacity),                            
+                            PercentageUsedToDo: me._getPercentageUsedToDo(task.get('ToDo'),capacity)                      
 
                         }    
                         tasks.push(task);                    
@@ -290,8 +290,8 @@ Ext.define("TSApp", {
                     Ext.Array.each(team.children,function(user){
                         team_capacity += user.Capacity;
                     })
-                    team.PercentageUsedToDo = team_capacity > 0 ? Ext.util.Format.number((team.ToDo/team_capacity)*100,'0'):0;
-                    team.PercentageUsedEstimate = team_capacity > 0 ? Ext.util.Format.number((team.Estimate/team_capacity)*100,'0'):0;
+                    team.PercentageUsedEstimate = me._getPercentageUsedEstimate(team.Estimate,team_capacity);
+                    team.PercentageUsedToDo = me._getPercentageUsedToDo(team.ToDo,team_capacity);
                     team.Capacity = team_capacity;
                 });
 
@@ -312,9 +312,13 @@ Ext.define("TSApp", {
                                     Capacity: totalCapacity,
                                     Estimate: totalEstimate,
                                     ToDo: totalToDo,
-                                    PercentageUsedEstimate: totalCapacity > 0 ? Ext.util.Format.number((totalEstimate/totalCapacity)*100,'0'):0,                                               
-                                    PercentageUsedToDo: totalCapacity > 0 ? Ext.util.Format.number((totalToDo/totalCapacity)*100,'0'):0                                               
-                                }
+                                    PercentageUsedEstimate: me._getPercentageUsedEstimate(totalEstimate,totalCapacity),                                               
+                                    PercentageUsedToDo: me._getPercentageUsedToDo(totalToDo,totalCapacity)                                              
+                                },
+                                sorters:[{
+                                    property:'PercentageUsedEstimate',
+                                    direction:'DESC'
+                                }]
                             });
                 //deferred.resolve(store);                    
 
@@ -328,6 +332,24 @@ Ext.define("TSApp", {
             me.setLoading(false);
         });
 
+    },
+
+
+    _getPercentageUsedEstimate: function(estimate,capacity){
+        var result = 0;
+        if(capacity > 0){
+            result = Math.round((estimate/capacity)*100);
+        }
+        return result;
+    },
+
+
+    _getPercentageUsedToDo: function(todo,capacity){
+        var result = 0;
+        if(capacity > 0){
+            result = Math.round((todo/capacity)*100);
+        }
+        return result;
     },
 
     //hash = {"Team": { project, Users: [User:{Name: name,Tasks:[task1,task2] }]}} :TODO
@@ -486,7 +508,7 @@ Ext.define("TSApp", {
                                 if(record.get('User')!=""){
                                     metaData.style = 'font-weight: bold;font-style: italic;background-color:#D3D3D3;';                                
                                 }                              
-                                return PercentageUsedEstimate ? Ext.util.Format.number(PercentageUsedEstimate,'0') + "%":"";
+                                return PercentageUsedEstimate + '%';
                             },
                             flex: 1
                         },
@@ -503,7 +525,7 @@ Ext.define("TSApp", {
                                 if(record.get('User')!=""){
                                     metaData.style = 'font-weight: bold;font-style: italic;background-color:#D3D3D3;';                                
                                 }                              
-                                return PercentageUsedToDo ? Ext.util.Format.number(PercentageUsedToDo,'0') + "%":"";
+                                return PercentageUsedToDo  + '%';
                             },
                             flex: 1
                         }
@@ -528,8 +550,8 @@ Ext.define("TSApp", {
             Capacity: totalCapacity,
             Estimate: totalEstimate,
             ToDo: totalToDo,
-            PercentageUsedEstimate: totalCapacity > 0 ? Math.round((totalEstimate/totalCapacity)*100):0,
-            PercentageUsedToDo: totalCapacity > 0 ? Math.round((totalToDo/totalCapacity)*100):0                                               
+            PercentageUsedEstimate: me._getPercentageUsedEstimate(totalEstimate,totalCapacity),
+            PercentageUsedToDo: me._getPercentageUsedToDo(totalToDo,totalCapacity)                                              
         }
 
 
