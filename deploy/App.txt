@@ -3,13 +3,13 @@
 <head>
     <title>Team Status By Team</title>
     <!--  (c) 2016 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Sun Feb 05 2017 17:48:43 GMT-0800 (PST) -->
+    <!--  Build Date: Fri Feb 10 2017 15:11:39 GMT-0800 (PST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sun Feb 05 2017 17:48:43 GMT-0800 (PST)";
+        var APP_BUILD_DATE = "Fri Feb 10 2017 15:11:39 GMT-0800 (PST)";
         var STORY    = "US802";
         var BUILDER  = "arajaraman";
-        var CHECKSUM = 50156937429;
+        var CHECKSUM = 54065219300;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
@@ -840,7 +840,9 @@ Ext.define('TSModel', {
         { name: 'PercentageUsedToDo', type:'number' },
         { name: 'Capacity', type:'number' },
         { name: 'Estimate', type:'number' },
-        { name: 'ToDo', type:'number' }
+        { name: 'ToDo', type:'number' },
+        { name: 'Actuals', type:'number' },
+        { name: 'PercentageUsedActuals', type: 'number'}
     ]
 });
 
@@ -857,8 +859,37 @@ Ext.define("TSApp", {
     integrationHeaders : {
         name : "TSApp"
     },
-                        
-     
+    
+    config: {
+        defaultSettings: {
+            selectorType: ''    
+        }
+    },                    
+
+    getSettingsFields: function() {
+        var me = this;
+        var settings = [{
+                name: 'showActuals',
+                xtype: 'rallycheckboxfield',
+                boxLabelAlign: 'after',
+                fieldLabel: '',
+                margin: '0 0 25 25',
+                boxLabel: 'Show Actuals on Grid'
+            }
+            // ,
+            // {
+            //     name: 'showColorCodes',
+            //     xtype: 'rallycheckboxfield',
+            //     boxLabelAlign: 'after',
+            //     fieldLabel: '',
+            //     margin: '0 0 25 25',
+            //     boxLabel: 'Show Color coding on Grid'
+            // }            
+            ];
+        return settings;
+    },
+
+
     launch: function() {
         var me = this;
         me._addSelector();
@@ -911,7 +942,7 @@ Ext.define("TSApp", {
         var me = this;
         me.setLoading("Loading");
         var model_name = 'Task',
-            field_names = ['ObjectID','FormattedID','Name','Project','State','Owner','WorkProduct','ToDo','Estimate','Iteration','UserIterationCapacities','DisplayName',"FirstName",'LastName'],
+            field_names = ['ObjectID','FormattedID','Name','Project','State','Owner','WorkProduct','ToDo','Estimate','Actuals','Iteration','UserIterationCapacities','DisplayName',"FirstName",'LastName'],
             iteration_field_names = ['ObjectID','FormattedID','Name','Project','Iteration','Capacity','User','DisplayName',"FirstName",'LastName'],
             filters = [];
         var iteration_name = me.iteration.rawValue;
@@ -929,6 +960,7 @@ Ext.define("TSApp", {
                 var totalCapacity = 0;
                 var totalEstimate = 0;
                 var totalToDo = 0;
+                var totalActuals = 0;
                 // me.logger.log('uic',results[1]);
 
                 var uic_hash = {};
@@ -938,21 +970,6 @@ Ext.define("TSApp", {
                     if(" "==userName){
                         userName = uic.get('User')._refObjectName;
                     }                    
-                    // me.logger.log('userName',userName);
-                    // teamExists = Ext.Array.filter(uic_hash, function(item) {
-                    //     if(item.Team == uic.get('Project').Name){
-                    //         item.Users.push({ObjectID: uic.get('ObjectID'), UserName: userName, Capacity: uic.get('Capacity')});
-                    //         return true;   
-                    //     }
-                    // });
-
-                    // if(teamExists.length < 1){
-                    //     uic_hash.push({
-                    //         Team: uic.get('Project').Name,
-                    //         ObjectID: uic.get('Project').ObjectID,
-                    //         Users: [{ObjectID: uic.get('ObjectID'), UserName: userName, Capacity: uic.get('Capacity')}]
-                    //     });                        
-                    // }
 
                     totalCapacity += uic.get('Capacity');
                     if(uic_hash[uic.get('Project').Name]){
@@ -962,8 +979,10 @@ Ext.define("TSApp", {
                                                                         Capacity: uic.get('Capacity'),
                                                                         Estimate: 0,
                                                                         ToDo: 0,
+                                                                        Actuals: 0,
                                                                         PercentageUsedEstimate: 0,
-                                                                        PercentageUsedToDo: 0
+                                                                        PercentageUsedToDo: 0,
+                                                                        PercentageUsedActuals: 0
                                                                     });
                     }else{
                         uic_hash[uic.get('Project').Name] = {
@@ -975,8 +994,10 @@ Ext.define("TSApp", {
                                         Capacity: uic.get('Capacity'),
                                         Estimate: 0,
                                         ToDo: 0,
+                                        Actuals: 0,
                                         PercentageUsedEstimate: 0,
-                                        PercentageUsedToDo: 0
+                                        PercentageUsedToDo: 0,
+                                        PercentageUsedActuals: 0
                                     }]
                         };
                     }
@@ -994,8 +1015,10 @@ Ext.define("TSApp", {
                         Capacity: 0,
                         Estimate: 0,
                         ToDo: 0,
+                        Actuals: 0,
                         PercentageUsedEstimate: 0,
-                        PercentageUsedToDo: 0
+                        PercentageUsedToDo: 0,
+                        PercentageUsedActuals: 0
                     });
                 });
 
@@ -1003,6 +1026,7 @@ Ext.define("TSApp", {
 
                     totalToDo = totalToDo + (task.get('ToDo') > 0 ? task.get('ToDo'):0);
                     totalEstimate = totalEstimate + (task.get('Estimate') > 0 ? task.get('Estimate'):0);
+                    totalActuals = totalActuals + (task.get('Actuals') > 0 ? task.get('Actuals'):0);
                     var userName = task.get('Owner')  ? ((task.get('Owner').FirstName ? task.get('Owner').FirstName : "" ) + " " + (task.get('Owner').LastName ? task.get('Owner').LastName.slice(0,1) : "" )) : "No Owner Entry";
                     if(" "==userName){
                         userName = task.get('Owner')._refObjectName;
@@ -1022,56 +1046,38 @@ Ext.define("TSApp", {
 
                             userExists = Ext.Array.filter(item.children, function(child) {
                                 if(child.User == userName){
-                                    //child.User =  task.get('Owner')._refObjectName,
-                                    //child.UserObjectID= task.get('Owner').ObjectID;                                  
-                                    child.children.push({
-                                        Name: task.get('Name'),
-                                        FormattedID: task.get('FormattedID'),
-                                        WorkProduct: task.get('WorkProduct').Name,
-                                        WorkProductID: task.get('WorkProduct').FormattedID,
-                                        State: task.get('State'),
-                                        Estimate: task.get('Estimate'),
-                                        ToDo: task.get('ToDo'),
-                                        leaf: true                                        
-                                    });
+                                    child.children.push(me._getLeafNode(task));
                                     child.Estimate += task.get('Estimate');
-                                    child.ToDo += task.get('ToDo');                                    
+                                    child.ToDo += task.get('ToDo');
+                                    child.Actuals += task.get('Actuals');                                    
                                     child.Capacity = capacity;
-                                    child.PercentageUsedEstimate = me._getPercentageUsedEstimate(child.Estimate,child.Capacity);
-                                    child.PercentageUsedToDo = me._getPercentageUsedToDo(child.ToDo,child.Capacity);
+                                    child.PercentageUsedEstimate = me._getPercentage(child.Estimate,capacity);
+                                    child.PercentageUsedToDo = me._getPercentage(child.ToDo,capacity);
+                                    child.PercentageUsedActuals = me._getPercentage(child.Actuals,capacity);
                                     return true;       
                                 }
                             },me);
 
                             if(userExists.length < 1){
-                                //totalCapacity += capacity; 
-
                                 item.children.push({
                                     User: userName,
-                                    //UserObjectID: task.get('Owner') ? task.get('Owner').ObjectID:0,
-                                    children: [{
-                                            Name: task.get('Name'),
-                                            FormattedID: task.get('FormattedID'),
-                                            WorkProduct: task.get('WorkProduct').Name,
-                                            WorkProductID: task.get('WorkProduct').FormattedID,
-                                            State: task.get('State'),
-                                            Estimate: task.get('Estimate'),
-                                            ToDo: task.get('ToDo'),
-                                            leaf: true
-                                    }],
+                                    children: [me._getLeafNode(task)],
                                     Capacity: capacity,
                                     Estimate: task.get('Estimate'),
                                     ToDo: task.get('ToDo'),
-                                    PercentageUsedEstimate: me._getPercentageUsedEstimate(task.get('Estimate'),capacity),
-                                    PercentageUsedToDo: me._getPercentageUsedToDo(task.get('ToDo'),capacity)
+                                    Actuals: task.get('Actuals'),
+                                    PercentageUsedEstimate: me._getPercentage(task.get('Estimate'),capacity),
+                                    PercentageUsedToDo: me._getPercentage(task.get('ToDo'),capacity),
+                                    PercentageUsedActuals: me._getPercentage(task.get('Actuals'),capacity)
                                 });
-                              
                             }
                             item.Estimate += task.get('Estimate');
-                            item.ToDo += task.get('ToDo');                                    
-                            item.Capacity =0;
-                            item.PercentageUsedEstimate = me._getPercentageUsedEstimate(item.Estimate,item.Capacity); 
-                            item.PercentageUsedToDo = me._getPercentageUsedToDo(item.ToDo,item.Capacity);
+                            item.ToDo += task.get('ToDo');
+                            item.Actuals += task.get('Actuals');                          
+                            item.Capacity = 0;
+                            item.PercentageUsedEstimate = me._getPercentage(item.Estimate,item.Capacity); 
+                            item.PercentageUsedToDo = me._getPercentage(item.ToDo,item.Capacity);
+                            item.PercentageUsedActuals = me._getPercentage(item.Actuals,item.Capacity);
                             return true;                          
                         }
                     },me);
@@ -1080,33 +1086,26 @@ Ext.define("TSApp", {
 
                         Ext.Array.each(me.uic_hash[task.get('Project').Name].Users,function(user){
                             if(user.User == userName){
-                                user.children.push({
-                                    Name: task.get('Name'),
-                                    FormattedID: task.get('FormattedID'),
-                                    WorkProduct: task.get('WorkProduct').Name,
-                                    WorkProductID: task.get('WorkProduct').FormattedID,
-                                    State: task.get('State'),
-                                    Estimate: task.get('Estimate'),
-                                    ToDo: task.get('ToDo'),
-                                    leaf: true
-                                });
+                                user.children.push(me._getLeafNode(task));
                                 user.Capacity = capacity;
                                 user.Estimate = task.get('Estimate');
                                 user.ToDo = task.get('ToDo');
-                                user.PercentageUsedEstimate = me._getPercentageUsedEstimate(task.get('Estimate'),capacity);
-                                user.PercentageUsedToDo = me._getPercentageUsedToDo(task.get('ToDo'),capacity);
+                                user.Actuals = task.get('Actuals');
+                                user.PercentageUsedEstimate = me._getPercentage(task.get('Estimate'),capacity);
+                                user.PercentageUsedToDo = me._getPercentage(task.get('ToDo'),capacity);
+                                user.PercentageUsedActuals = me._getPercentage(task.get('Actuals'),capacity);
                             }
                         })
-                        //totalCapacity += capacity;
                         task = {
                             Team: task.get('Project').Name,
                             children: me.uic_hash[task.get('Project').Name].Users,
                             Capacity: 0,
                             Estimate: task.get('Estimate'),
                             ToDo: task.get('ToDo'),
-                            PercentageUsedEstimate: me._getPercentageUsedEstimate(task.get('Estimate'),capacity),                            
-                            PercentageUsedToDo: me._getPercentageUsedToDo(task.get('ToDo'),capacity)                      
-
+                            Actuals: task.get('Actuals'),
+                            PercentageUsedEstimate: me._getPercentage(task.get('Estimate'),capacity),                            
+                            PercentageUsedToDo: me._getPercentage(task.get('ToDo'),capacity),                      
+                            PercentageUsedActuals: me._getPercentage(task.get('Actuals'),capacity)                      
                         }    
                         tasks.push(task);                    
                     }
@@ -1118,8 +1117,9 @@ Ext.define("TSApp", {
                     Ext.Array.each(team.children,function(user){
                         team_capacity += user.Capacity;
                     })
-                    team.PercentageUsedEstimate = me._getPercentageUsedEstimate(team.Estimate,team_capacity);
-                    team.PercentageUsedToDo = me._getPercentageUsedToDo(team.ToDo,team_capacity);
+                    team.PercentageUsedEstimate = me._getPercentage(team.Estimate,team_capacity);
+                    team.PercentageUsedToDo = me._getPercentage(team.ToDo,team_capacity);
+                    team.PercentageUsedActuals = me._getPercentage(team.Actuals,team_capacity);
                     team.Capacity = team_capacity;
                 });
 
@@ -1129,7 +1129,7 @@ Ext.define("TSApp", {
 
                 console.log('Tasks>',me.tasks);
 
-                me._create_csv(totalCapacity,totalEstimate, totalToDo );
+                me._create_csv(totalCapacity,totalEstimate, totalToDo, totalActuals );
                 
                 var store = Ext.create('Ext.data.TreeStore', {
                                 model: 'TSModel',
@@ -1140,15 +1140,16 @@ Ext.define("TSApp", {
                                     Capacity: totalCapacity,
                                     Estimate: totalEstimate,
                                     ToDo: totalToDo,
-                                    PercentageUsedEstimate: me._getPercentageUsedEstimate(totalEstimate,totalCapacity),                                               
-                                    PercentageUsedToDo: me._getPercentageUsedToDo(totalToDo,totalCapacity)                                              
+                                    Actuals: totalActuals,
+                                    PercentageUsedEstimate: me._getPercentage(totalEstimate,totalCapacity),                                               
+                                    PercentageUsedToDo: me._getPercentage(totalToDo,totalCapacity),
+                                    PercentageUsedActuals: me._getPercentage(totalActuals,totalCapacity)                                  
                                 },
                                 sorters:[{
                                     property:'PercentageUsedEstimate',
                                     direction:'DESC'
                                 }]
                             });
-                //deferred.resolve(store);                    
 
                 me._displayGridNew(store);
                 me.setLoading(false);                
@@ -1162,20 +1163,25 @@ Ext.define("TSApp", {
 
     },
 
-
-    _getPercentageUsedEstimate: function(estimate,capacity){
-        var result = 0;
-        if(capacity > 0){
-            result = Math.round((estimate/capacity)*100);
-        }
-        return result;
+    _getLeafNode:function(task){
+        return {                    
+                    Name: task.get('Name'),
+                    FormattedID: task.get('FormattedID'),
+                    WorkProduct: task.get('WorkProduct').Name,
+                    WorkProductID: task.get('WorkProduct').FormattedID,
+                    State: task.get('State'),
+                    Estimate: task.get('Estimate'),
+                    ToDo: task.get('ToDo'),
+                    Actuals: task.get('Actuals'),
+                    leaf: true
+                }
     },
 
 
-    _getPercentageUsedToDo: function(todo,capacity){
+    _getPercentage: function(value,capacity){
         var result = 0;
         if(capacity > 0){
-            result = Math.round((todo/capacity)*100);
+            result = Math.round((value/capacity)*100);
         }
         return result;
     },
@@ -1233,7 +1239,7 @@ Ext.define("TSApp", {
 
     _getColumns: function(){
         var me = this;
-        return [
+        var columns =  [
                         {
                             xtype:'treecolumn',
                             text: 'Team', 
@@ -1358,6 +1364,46 @@ Ext.define("TSApp", {
                             flex: 1
                         }
             ];
+
+            if(me.getSetting('showActuals')){
+                columns.push({
+                    text: 'Actuals',
+                    dataIndex: 'Actuals',
+                    renderer: function(Actuals,metaData,record){
+                        if(record.get('Team') == me.context.getProject().Name ){
+                            metaData.style = 'font-weight: bold;font-style: italic;background-color:#A9A9A9;';                                
+                        }                                
+                        if(record.get('Team')!="" && record.get('Team') != me.context.getProject().Name ){
+                            metaData.style = 'font-weight: bold;font-style: italic;background-color:#C0C0C0;';                                
+                        }
+                        if(record.get('User')!=""){
+                            metaData.style = 'font-weight: bold;font-style: italic;background-color:#D3D3D3;';                                
+                        }                                   
+                        return Actuals //> 0 ? ToDo:0;
+                    },
+                    flex: 1
+                });
+
+                columns.push({
+                            text: '% Used <BR>(Actuals)',
+                            dataIndex: 'PercentageUsedActuals',
+                            renderer: function(PercentageUsedActuals,metaData,record){
+                                if(record.get('Team') == me.context.getProject().Name ){
+                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#A9A9A9;';                                
+                                }                                
+                                if(record.get('Team')!="" && record.get('Team') != me.context.getProject().Name ){
+                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#C0C0C0;';                                
+                                }
+                                if(record.get('User')!=""){
+                                    metaData.style = 'font-weight: bold;font-style: italic;background-color:#D3D3D3;';                                
+                                }                              
+                                return PercentageUsedActuals  + '%';
+                            },
+                            flex: 1
+                        });
+            }
+
+            return columns;
     },
 
 
@@ -1370,7 +1416,7 @@ Ext.define("TSApp", {
         Rally.technicalservices.FileUtilities.saveCSVToFile(me.CSV,filename);
     },
 
-    _create_csv: function(totalCapacity,totalEstimate, totalToDo){
+    _create_csv: function(totalCapacity,totalEstimate, totalToDo, totalActuals){
         var me = this;
 
         totals = {
@@ -1378,10 +1424,11 @@ Ext.define("TSApp", {
             Capacity: totalCapacity,
             Estimate: totalEstimate,
             ToDo: totalToDo,
-            PercentageUsedEstimate: me._getPercentageUsedEstimate(totalEstimate,totalCapacity),
-            PercentageUsedToDo: me._getPercentageUsedToDo(totalToDo,totalCapacity)                                              
+            Actuals: totalActuals,
+            PercentageUsedEstimate: me._getPercentage(totalEstimate,totalCapacity),
+            PercentageUsedToDo: me._getPercentage(totalToDo,totalCapacity),
+            PercentageUsedActuals: me._getPercentage(totalActuals,totalCapacity)                                              
         }
-
 
         if ( !me.tasks ) { return; }
         
