@@ -1,4 +1,8 @@
-#Dependency Grid by Release
+#Team Status by Team
+
+## Summary/Description
+
+![screenshot](./images/screenshot.png "This is an example")
 
 ## Development Notes
 
